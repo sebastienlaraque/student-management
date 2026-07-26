@@ -21,16 +21,15 @@ def _print_header():
 
 
 def _print_menu():
-    print(
-        """
-  1.   Ajouter un étudiant
-  2.   Lister tous les étudiants
-  3.   Afficher un étudiant (par ID)
-  4.   Modifier un étudiant
-  5.   Supprimer un étudiant
-  0.   Quitter
+    menu = """
+    1. Ajouter un étudiant
+    2. Lister les étudiants
+    3. Afficher un étudiant
+    4. Modifier un étudiant
+    5. Supprimer un étudiant
+    0. Quitter
 """
-    )
+    print(menu)
 
 
 def _ask(prompt: str, required: bool = True) -> str:
@@ -47,7 +46,6 @@ def _ask_optional(prompt: str) -> str | None:
 
 
 def _ask_phone_8(prompt: str) -> str:
-    # Validation minimale côté UI: l'entity valide aussi.
     return _ask(prompt)
 
 
@@ -61,6 +59,16 @@ def _parse_class(class_value: str):
         raise ValueError(f"Classe invalide. Valeurs possibles: {valid}")
 
 
+def _parse_status(status_value: str):
+    from src.entities.student import Status
+
+    try:
+        return Status(status_value)
+    except ValueError:
+        valid = ", ".join([s.value for s in Status])
+        raise ValueError(f"Statut invalide. Valeurs possibles: {valid}")
+
+
 # ── ACTIONS ──────────────────────────────────────────────────────────────────
 
 def action_add(controller: StudentController):
@@ -68,8 +76,6 @@ def action_add(controller: StudentController):
 
     name = _ask("Nom")
 
-    # UI demande DOB, mais ton entity actuelle n'a pas de champ dob.
-    # On le collecte pour l'interface demandée, mais on ne le persiste pas.
     _ = _ask("Date de naissance — jour (ex: 22)")
     _ = _ask("Date de naissance — mois (ex: 12)")
     _ = _ask("Date de naissance — année (ex: 2000)")
@@ -94,7 +100,6 @@ def action_add(controller: StudentController):
             student_class=resolved_class,
         )
 
-
         print(f"\n  Étudiant créé — ID: {result['student_id']}")
     except (ValueError, TypeError) as e:
         print(f"\n  Erreur : {e}")
@@ -107,11 +112,19 @@ def action_list(controller: StudentController):
         print("  (aucun étudiant enregistré)")
         return
     print(f"\n  {len(students)} étudiant(s) trouvé(s):\n")
-    for s in students:
-        from src.entities.student import Student
+    for idx, s in enumerate(students, start=1):
+        from src.entities.student import Student, Status, StudentClass
 
-        entity = Student(**s)
-        print(" ", StudentPresenter.to_cli_line(entity))
+        entity = Student(
+            student_id=s["student_id"],
+            full_name=s["full_name"],
+            email=s["email"],
+            parent_phone_number=s["parent_phone_number"],
+            student_phone_number=s["student_phone_number"],
+            status=Status(s["status"]),
+            student_class=StudentClass(s["student_class"]),
+        )
+        print(f"{idx:2}.{StudentPresenter.to_cli_line(entity)}")
 
 
 def action_get(controller: StudentController):
@@ -119,11 +132,19 @@ def action_get(controller: StudentController):
     student_id = _ask("ID de l'étudiant")
     try:
         result = controller.get_student(student_id)
-        from src.entities.student import Student
+        from src.entities.student import Student, Status, StudentClass
 
-        entity = Student(**result)
+        entity = Student(
+            student_id=result["student_id"],
+            full_name=result["full_name"],
+            email=result["email"],
+            parent_phone_number=result["parent_phone_number"],
+            student_phone_number=result["student_phone_number"],
+            status=Status(result["status"]),
+            student_class=StudentClass(result["student_class"]),
+        )
         print(StudentPresenter.to_cli_detail(entity))
-    except ValueError as e:
+    except (ValueError, TypeError) as e:
         print(f"\n  {e}")
 
 
@@ -137,9 +158,11 @@ def action_update(controller: StudentController):
     parent_phone_number = _ask_optional("Nouveau téléphone parent (8 chiffres)")
     student_phone_number = _ask_optional("Nouveau téléphone élève")
     class_value = _ask_optional("Nouvelle classe (ex: 1AF, 2AF, ... ou NS1-NS4)")
+    status_value = _ask_optional("Nouveau statut (active, inactive, suspended, dropped_out)")
 
     try:
         resolved_class = _parse_class(class_value) if class_value is not None else None
+        resolved_status = _parse_status(status_value) if status_value is not None else None
 
         result = controller.update_student(
             student_id=student_id,
@@ -147,7 +170,7 @@ def action_update(controller: StudentController):
             email=email,
             parent_phone_number=parent_phone_number,
             student_phone_number=student_phone_number,
-            status=None,
+            status=resolved_status,
             student_class=resolved_class,
         )
         print(f"\n  Étudiant mis à jour : {result['full_name']}")

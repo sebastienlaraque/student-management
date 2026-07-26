@@ -33,8 +33,7 @@ class StudentPresenter:
     @staticmethod
     def to_cli_line(student: Student) -> str:
         return (
-            f"[{student.student_id}...]  {student.full_name:<24} "
-            f"Status: {student.status.value} | Class: {student.student_class.value}"
+            f"  {student.full_name:<30}  Classe: {student.student_class.value}"
         )
 
     @staticmethod

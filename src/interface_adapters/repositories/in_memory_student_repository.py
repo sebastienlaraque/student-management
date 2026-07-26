@@ -27,8 +27,8 @@ class InMemoryStudentRepository(StudentRepository):
         return self._store.get(student_id)
 
     def find_all(self) -> List[Student]:
-        #return list(self._store.values())
-        return [copy.deepcopy(s)for s in self._store.values()]
+        # return list(self._store.values())
+        return [copy.deepcopy(s) for s in self._store.values()]
 
     def update(self, student: Student) -> Student:
         if student.student_id not in self._store:

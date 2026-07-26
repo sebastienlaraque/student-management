@@ -61,9 +61,6 @@ class Student:
         ):
             raise ValueError("The student's phone number must have exactly 8 digits if provided.")
 
-        if self.status == Status.ACTIVE and self.student_class not in StudentClass:
-            raise ValueError("Invalid status.")
-
         if not isinstance(self.student_class, StudentClass):
             raise ValueError("Invalid student class.")
 
